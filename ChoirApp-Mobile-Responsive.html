@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choir App - Supabase Live</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; background: #f8fafb; color: #1a1a1a; }
+        .container { min-height: 100vh; display: flex; }
+        .sidebar { width: 280px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 0; position: fixed; height: 100vh; overflow-y: auto; box-shadow: 2px 0 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        .sidebar h1 { padding: 0 20px 30px; font-size: 24px; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 20px; }
+        .nav-item { padding: 14px 20px; cursor: pointer; transition: all 0.3s ease; border-left: 4px solid transparent; display: flex; align-items: center; gap: 12px; }
+        .nav-item:hover { background: rgba(255,255,255,0.1); border-left-color: white; }
+        .nav-item.active { background: rgba(255,255,255,0.2); border-left-color: white; font-weight: 600; }
+        .main-content { margin-left: 280px; flex: 1; padding: 40px; }
+        .header { margin-bottom: 40px; }
+        .header h2 { font-size: 32px; margin-bottom: 10px; color: #1a1a1a; }
+        .header p { color: #666; font-size: 14px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        .stat-card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-top: 4px solid #667eea; }
+        .stat-card h3 { font-size: 12px; text-transform: uppercase; color: #999; margin-bottom: 12px; font-weight: 600; letter-spacing: 1px; }
+        .stat-card .value { font-size: 36px; font-weight: 700; color: #667eea; margin-bottom: 8px; }
+        .stat-card .label { font-size: 14px; color: #666; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; transition: all 0.3s ease; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102,126,234,0.3); }
+        .btn-secondary { background: #f0f0f0; color: #333; }
+        .btn-secondary:hover { background: #e0e0e0; }
+        .btn-danger { background: #ff6b6b; color: white; }
+        .btn-danger:hover { background: #ff5252; }
+        .btn-small { padding: 6px 12px; font-size: 12px; }
+        .table-container { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 30px; }
+        .table-header { padding: 20px; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
+        .table-header h3 { font-size: 18px; color: #1a1a1a; }
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: #f8f9fa; border-bottom: 2px solid #e0e0e0; }
+        th { padding: 16px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase; color: #666; letter-spacing: 0.5px; }
+        td { padding: 16px; border-bottom: 1px solid #e0e0e0; font-size: 14px; }
+        tr:hover { background: #f8f9fa; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: #333; font-size: 14px; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; transition: border-color 0.3s ease; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-backdrop.show { display: flex; }
+        .modal { background: white; border-radius: 12px; padding: 32px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .modal h2 { margin-bottom: 20px; color: #1a1a1a; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 24px; }
+        .modal-buttons button { flex: 1; }
+        .close-btn { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer; color: #999; }
+        .search-bar { display: flex; gap: 12px; margin-bottom: 20px; }
+        .search-bar input, .search-bar select { padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        .search-bar input { flex: 1; }
+        .attendance-buttons { display: flex; gap: 8px; }
+        .attendance-btn { padding: 8px 12px; border: 2px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.3s ease; }
+        .attendance-btn.present { border-color: #4caf50; background: #e8f5e9; color: #2e7d32; }
+        .attendance-btn.absent { border-color: #f44336; background: #ffebee; color: #c62828; }
+        .attendance-btn.tardy { border-color: #ff9800; background: #fff3e0; color: #e65100; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .empty-state h3 { color: #666; margin-bottom: 10px; font-size: 18px; }
+        .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-learning { background: #e3f2fd; color: #1976d2; }
+        .badge-ready { background: #e8f5e9; color: #388e3c; }
+        .loading { text-align: center; padding: 40px; color: #999; }
+        .sidebar.red-theme { background: linear-gradient(135deg, #dc143c 0%, #8b0000 100%); }
+        .btn-primary.red-theme { background: #dc143c; }
+        .btn-primary.red-theme:hover { background: #b31030; box-shadow: 0 4px 12px rgba(220,20,60,0.3); }
+        .stat-card.red-theme { border-top: 4px solid #dc143c; }
+        .stat-card.red-theme .value { color: #dc143c; }
+        .form-group input.red-theme:focus, .form-group select.red-theme:focus { border-color: #dc143c; box-shadow: 0 0 0 3px rgba(220,20,60,0.1); }
+        .theme-toggle-btn { padding: 10px 16px; background: #2a2a2a; color: white; border: 2px solid #dc143c; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; margin: 20px; font-size: 13px; width: calc(100% - 40px); }
+        .theme-toggle-btn:hover { background: #dc143c; transform: translateY(-2px); }
+        .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.2); margin-top: auto; }
+
+        /* Mobile Navigation Bar */
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-top: 1px solid rgba(255,255,255,0.2);
+            justify-content: space-around;
+            align-items: center;
+            z-index: 99;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+        }
+
+        .mobile-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            height: 100%;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .mobile-nav-item:active {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .mobile-nav-item.active {
+            color: white;
+            background: rgba(255,255,255,0.15);
+        }
+
+        .mobile-nav-item span:first-child {
+            font-size: 20px;
+        }
+
+        .mobile-nav.red-theme {
+            background: linear-gradient(135deg, #dc143c 0%, #8b0000 100%);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 0; position: absolute; left: 0; z-index: 100; }
+            .main-content { margin-left: 0; padding-bottom: 80px; }
+            .form-row { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .mobile-nav { display: flex; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+        const SUPABASE_URL = 'https://yjyygjtaefhcacrqabac.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_D40qYjj5DBL8nq8UwbVn9Q_as0Jpb4w';
+        const { createClient } = window.supabase;
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        async function fetchMembers() {
+            try {
+                const { data, error } = await supabase.from('members').select('*').order('id', { ascending: true });
+                if (error) throw error;
+                return data || [];
+            } catch (error) {
+                console.error('Error fetching members:', error.message);
+                return [];
+            }
+        }
+        async function addMember(memberData) {
+            try {
+                const { data, error } = await supabase.from('members').insert([memberData]).select();
+                if (error) throw error;
+                return data?.[0] || null;
+            } catch (error) {
+                console.error('Error adding member:', error.message);
+                return null;
+            }
+        }
+        async function updateMember(memberId, memberData) {
+            try {
+                const { data, error } = await supabase.from('members').update(memberData).eq('id', memberId).select();
+                if (error) throw error;
+                return data?.[0] || null;
+            } catch (error) {
+                console.error('Error updating member:', error.message);
+                return null;
+            }
+        }
+        async function deleteMember(memberId) {
+            try {
+                const { error } = await supabase.from('members').delete().eq('id', memberId);
+                if (error) throw error;
+                return true;
+            } catch (error) {
+                console.error('Error deleting member:', error.message);
+                return false;
+            }
+        }
+        async function fetchEvents() {
+            try {
+                const { data, error } = await supabase.from('attendance').select('event_id, event_date, event_type').order('event_date', { ascending: false });
+                if (error) throw error;
+                const events = [];
+                const seen = new Set();
+                data?.forEach(record => {
+                    const key = `${record.event_date}-${record.event_type}`;
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        events.push({ id: record.event_id, date: record.event_date, type: record.event_type, attendance: {} });
+                    }
+                });
+                for (const event of events) {
+                    const { data: attendanceData } = await supabase.from('attendance').select('member_id, status').eq('event_id', event.id);
+                    attendanceData?.forEach(record => { event.attendance[record.member_id] = record.status; });
+                }
+                return events;
+            } catch (error) {
+                console.error('Error fetching events:', error.message);
+                return [];
+            }
+        }
+        async function addEvent(eventData, allMembers) {
+            try {
+                const eventId = Date.now();
+                const attendanceRecords = allMembers.map(member => ({
+                    event_id: eventId,
+                    member_id: member.id,
+                    event_date: eventData.date,
+                    event_type: eventData.type,
+                    status: 'none'
+                }));
+                const { error } = await supabase.from('attendance').insert(attendanceRecords);
+                if (error) throw error;
+                return { id: eventId, date: eventData.date, type: eventData.type, attendance: {} };
+            } catch (error) {
+                console.error('Error adding event:', error.message);
+                return null;
+            }
+        }
+        async function markAttendance(eventId, memberId, status) {
+            try {
+                const { error } = await supabase.from('attendance').update({ status }).eq('event_id', eventId).eq('member_id', memberId);
+                if (error) throw error;
+                return true;
+            } catch (error) {
+                console.error('Error marking attendance:', error.message);
+                return false;
+            }
+        }
+        async function deleteEvent(eventId) {
+            try {
+                const { error } = await supabase.from('attendance').delete().eq('event_id', eventId);
+                if (error) throw error;
+                return true;
+            } catch (error) {
+                console.error('Error deleting event:', error.message);
+                return false;
+            }
+        }
+        const MemberModalComponent = React.memo(({ showAddMember, editingMember, newMember, setNewMember, setShowAddMember, theme, addMemberHandler, updateMemberHandler }) => {
+            const handleNameChange = useCallback((e) => setNewMember(prev => ({ ...prev, name: e.target.value })), [setNewMember]);
+            const handleEmailChange = useCallback((e) => setNewMember(prev => ({ ...prev, email: e.target.value })), [setNewMember]);
+            const handlePhoneChange = useCallback((e) => setNewMember(prev => ({ ...prev, phone: e.target.value })), [setNewMember]);
+            const handleSectionChange = useCallback((e) => setNewMember(prev => ({ ...prev, section: e.target.value })), [setNewMember]);
+            return (
+                <div className={`modal-backdrop ${showAddMember ? 'show' : ''}`}>
+                    <div className="modal">
+                        <button className="close-btn" onClick={() => setShowAddMember(false)}>×</button>
+                        <h2>{editingMember ? 'Edit Member' : 'Add New Member'}</h2>
+                        <div className="form-group"><label>Full Name</label><input type="text" value={newMember.name} onChange={handleNameChange} placeholder="Sarah Johnson" autoComplete="off" className={theme === 'red' ? 'red-theme' : ''} /></div>
+                        <div className="form-group"><label>Email</label><input type="email" value={newMember.email} onChange={handleEmailChange} placeholder="sarah@example.com" autoComplete="off" className={theme === 'red' ? 'red-theme' : ''} /></div>
+                        <div className="form-group"><label>Phone</label><input type="text" value={newMember.phone} onChange={handlePhoneChange} placeholder="+234 801 234 5678" autoComplete="off" className={theme === 'red' ? 'red-theme' : ''} /></div>
+                        <div className="form-group"><label>Vocal Section</label><select value={newMember.section} onChange={handleSectionChange} className={theme === 'red' ? 'red-theme' : ''}><option>Soprano</option><option>Alto</option><option>Tenor</option><option>Bass</option><option>Director</option></select></div>
+                        <div className="modal-buttons">
+                            <button className={`btn btn-primary ${theme === 'red' ? 'red-theme' : ''}`} onClick={editingMember ? updateMemberHandler : addMemberHandler}>{editingMember ? 'Update' : 'Add'} Member</button>
+                            <button className="btn btn-secondary" onClick={() => setShowAddMember(false)}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        });
+        const SongModalComponent = React.memo(({ showAddSong, newSong, setNewSong, setShowAddSong, theme, addSongHandler }) => {
+            const handleTitleChange = useCallback((e) => setNewSong(prev => ({ ...prev, title: e.target.value })), [setNewSong]);
+            const handleComposerChange = useCallback((e) => setNewSong(prev => ({ ...prev, composer: e.target.value })), [setNewSong]);
+            const handleKeyChange = useCallback((e) => setNewSong(prev => ({ ...prev, key: e.target.value })), [setNewSong]);
+            const handleStatusChange = useCallback((e) => setNewSong(prev => ({ ...prev, status: e.target.value })), [setNewSong]);
+            return (
+                <div className={`modal-backdrop ${showAddSong ? 'show' : ''}`}>
+                    <div className="modal">
+                        <button className="close-btn" onClick={() => setShowAddSong(false)}>×</button>
+                        <h2>Add New Song</h2>
+                        <div className="form-group"><label>Song Title</label><input type="text" value={newSong.title} onChange={handleTitleChange} placeholder="Amazing Grace" autoComplete="off" className={theme === 'red' ? 'red-theme' : ''} /></div>
+                        <div className="form-group"><label>Composer</label><input type="text" value={newSong.composer} onChange={handleComposerChange} placeholder="John Newton" autoComplete="off" className={theme === 'red' ? 'red-theme' : ''} /></div>
+                        <div className="form-group"><label>Key</label><input type="text" value={newSong.key} onChange={handleKeyChange} placeholder="D Major" autoComplete="off" className={theme === 'red' ? 'red-theme' : ''} /></div>
+                        <div className="form-group"><label>Status</label><select value={newSong.status} onChange={handleStatusChange} className={theme === 'red' ? 'red-theme' : ''}><option>Learning</option><option>Performance Ready</option></select></div>
+                        <div className="modal-buttons">
+                            <button className={`btn btn-primary ${theme === 'red' ? 'red-theme' : ''}`} onClick={addSongHandler}>Add Song</button>
+                            <button className="btn btn-secondary" onClick={() => setShowAddSong(false)}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        });
+        const EventModalComponent = React.memo(({ showAddEvent, newEvent, setNewEvent, setShowAddEvent, theme, addEventHandler }) => {
+            const handleTypeChange = useCallback((e) => setNewEvent(prev => ({ ...prev, type: e.target.value })), [setNewEvent]);
+            const handleDateChange = useCallback((e) => setNewEvent(prev => ({ ...prev, date: e.target.value })), [setNewEvent]);
+            return (
+                <div className={`modal-backdrop ${showAddEvent ? 'show' : ''}`}>
+                    <div className="modal">
+                        <button className="close-btn" onClick={() => setShowAddEvent(false)}>×</button>
+                        <h2>Add New Event</h2>
+                        <div className="form-group"><label>Event Type</label><select value={newEvent.type} onChange={handleTypeChange} className={theme === 'red' ? 'red-theme' : ''}><option>Rehearsal</option><option>Sunday Service</option></select></div>
+                        <div className="form-group"><label>Date</label><input type="date" value={newEvent.date} onChange={handleDateChange} className={theme === 'red' ? 'red-theme' : ''} /></div>
+                        <div className="modal-buttons">
+                            <button className={`btn btn-primary ${theme === 'red' ? 'red-theme' : ''}`} onClick={addEventHandler}>Add Event</button>
+                            <button className="btn btn-secondary" onClick={() => setShowAddEvent(false)}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        });
+
+        const MobileNav = React.memo(({ activeTab, setActiveTab, theme }) => (
+            <div className={`mobile-nav ${theme === 'red' ? 'red-theme' : ''}`}>
+                <div className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
+                    <span>📊</span><span>Dashboard</span>
+                </div>
+                <div className={`mobile-nav-item ${activeTab === 'roster' ? 'active' : ''}`} onClick={() => setActiveTab('roster')}>
+                    <span>👥</span><span>Roster</span>
+                </div>
+                <div className={`mobile-nav-item ${activeTab === 'attendance' ? 'active' : ''}`} onClick={() => setActiveTab('attendance')}>
+                    <span>📋</span><span>Attendance</span>
+                </div>
+                <div className={`mobile-nav-item ${activeTab === 'music' ? 'active' : ''}`} onClick={() => setActiveTab('music')}>
+                    <span>🎵</span><span>Music</span>
+                </div>
+                <div className={`mobile-nav-item ${activeTab === 'reports' ? 'active' : ''}`} onClick={() => setActiveTab('reports')}>
+                    <span>📈</span><span>Reports</span>
+                </div>
+            </div>
+        ));
+
+        function ChoirApp() {
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [members, setMembers] = useState([]);
+            const [songs, setSongs] = useState([
+                { id: 1, title: 'Amazing Grace', composer: 'John Newton', key: 'D Major', status: 'Performance Ready' },
+                { id: 2, title: 'Hallelujah Chorus', composer: 'G.F. Handel', key: 'G Major', status: 'Performance Ready' },
+                { id: 3, title: 'O Magnum Mysterium', composer: 'Tomas Victoria', key: 'F Major', status: 'Learning' },
+                { id: 4, title: 'Agnus Dei', composer: 'Samuel Barber', key: 'A Major', status: 'Learning' },
+            ]);
+            const [events, setEvents] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [showAddMember, setShowAddMember] = useState(false);
+            const [showAddSong, setShowAddSong] = useState(false);
+            const [showAddEvent, setShowAddEvent] = useState(false);
+            const [editingMember, setEditingMember] = useState(null);
+            const [newMember, setNewMember] = useState({ name: '', email: '', phone: '', section: 'Soprano' });
+            const [newSong, setNewSong] = useState({ title: '', composer: '', key: '', status: 'Learning' });
+            const [newEvent, setNewEvent] = useState({ date: '', type: 'Rehearsal' });
+            const [searchTerm, setSearchTerm] = useState('');
+            const [sectionFilter, setSectionFilter] = useState('All');
+            const [theme, setTheme] = useState('purple');
+            useEffect(() => {
+                const loadData = async () => {
+                    setLoading(true);
+                    const membersData = await fetchMembers();
+                    const eventsData = await fetchEvents();
+                    setMembers(membersData);
+                    setEvents(eventsData);
+                    setLoading(false);
+                };
+                loadData();
+            }, []);
+            const addMemberHandler = async () => {
+                if (newMember.name.trim()) {
+                    const result = await addMember(newMember);
+                    if (result) {
+                        setMembers([...members, result]);
+                        setNewMember({ name: '', email: '', phone: '', section: 'Soprano' });
+                        setShowAddMember(false);
+                    }
+                }
+            };
+            const updateMemberHandler = async () => {
+                if (editingMember && newMember.name.trim()) {
+                    const result = await updateMember(editingMember.id, newMember);
+                    if (result) {
+                        setMembers(members.map(m => m.id === editingMember.id ? result : m));
+                        setEditingMember(null);
+                        setNewMember({ name: '', email: '', phone: '', section: 'Soprano' });
+                        setShowAddMember(false);
+                    }
+                }
+            };
+            const deleteMemberHandler = async (id) => {
+                const success = await deleteMember(id);
+                if (success) setMembers(members.filter(m => m.id !== id));
+            };
+            const startEdit = (member) => {
+                setEditingMember(member);
+                setNewMember({ name: member.name, email: member.email, phone: member.phone, section: member.section });
+                setShowAddMember(true);
+            };
+            const addSongHandler = () => {
+                if (newSong.title.trim()) {
+                    setSongs([...songs, { ...newSong, id: Math.max(...songs.map(s => s.id), 0) + 1 }]);
+                    setNewSong({ title: '', composer: '', key: '', status: 'Learning' });
+                    setShowAddSong(false);
+                }
+            };
+            const deleteSongHandler = (id) => setSongs(songs.filter(s => s.id !== id));
+            const addEventHandler = async () => {
+                if (newEvent.date) {
+                    const result = await addEvent(newEvent, members);
+                    if (result) {
+                        setEvents([result, ...events]);
+                        setNewEvent({ date: '', type: 'Rehearsal' });
+                        setShowAddEvent(false);
+                    }
+                }
+            };
+            const deleteEventHandler = async (id) => {
+                const success = await deleteEvent(id);
+                if (success) setEvents(events.filter(e => e.id !== id));
+            };
+            const markAttendanceHandler = async (eventId, memberId, status) => {
+                const success = await markAttendance(eventId, memberId, status);
+                if (success) {
+                    setEvents(events.map(e => e.id === eventId ? { ...e, attendance: { ...e.attendance, [memberId]: status } } : e));
+                }
+            };
+            const filteredMembers = members.filter(m => {
+                const matchesSearch = m.name.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesSection = sectionFilter === 'All' || m.section === sectionFilter;
+                return matchesSearch && matchesSection;
+            });
+            const getEventStats = (eventId) => {
+                const event = events.find(e => e.id === eventId);
+                if (!event) return { present: 0, absent: 0, tardy: 0, total: 0, percentage: 0 };
+                const attendance = event.attendance;
+                const present = Object.values(attendance).filter(s => s === 'present').length;
+                const absent = Object.values(attendance).filter(s => s === 'absent').length;
+                const tardy = Object.values(attendance).filter(s => s === 'tardy').length;
+                const total = members.length;
+                const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+                return { present, absent, tardy, total, percentage };
+            };
+            const DashboardScreen = () => (
+                <div>
+                    <div className="header">
+                        <h2>Dashboard Overview</h2>
+                        <p>Welcome! Your choir data is synced with Supabase ☁️</p>
+                    </div>
+                    <div className="stats-grid">
+                        <div className={`stat-card ${theme === 'red' ? 'red-theme' : ''}`}><h3>Total Members</h3><div className="value">{members.length}</div><div className="label">Active singers</div></div>
+                        <div className={`stat-card ${theme === 'red' ? 'red-theme' : ''}`}><h3>Upcoming Events</h3><div className="value">{events.length}</div><div className="label">Rehearsals & Services</div></div>
+                        <div className={`stat-card ${theme === 'red' ? 'red-theme' : ''}`}><h3>Songs Learning</h3><div className="value">{songs.filter(s => s.status === 'Learning').length}</div><div className="label">In progress</div></div>
+                        <div className={`stat-card ${theme === 'red' ? 'red-theme' : ''}`}><h3>Performance Ready</h3><div className="value">{songs.filter(s => s.status === 'Performance Ready').length}</div><div className="label">Ready to perform</div></div>
+                    </div>
+                    <div className="table-container">
+                        <div className="table-header"><h3>📅 Upcoming Events</h3><button className={`btn btn-primary ${theme === 'red' ? 'red-theme' : ''}`} onClick={() => setShowAddEvent(true)}>+ Add Event</button></div>
+                        <table><thead><tr><th>Date</th><th>Type</th><th>Attendance</th><th>Percentage</th><th>Action</th></tr></thead><tbody>
+                            {events.length > 0 ? events.map(event => {const stats = getEventStats(event.id); return (<tr key={event.id}><td><strong>{event.date}</strong></td><td>{event.type}</td><td>{stats.present}/{stats.total} present</td><td><strong style={{color: stats.percentage >= 70 ? '#4caf50' : '#f44336'}}>{stats.percentage}%</strong></td><td><button className="btn btn-danger btn-small" onClick={() => deleteEventHandler(event.id)}>Delete</button></td></tr>);}) : (<tr><td colSpan="5" style={{textAlign: 'center', padding: '40px'}}>No events scheduled</td></tr>)}
+                        </tbody></table>
+                    </div>
+                </div>
+            );
+            const RosterScreen = () => (
+                <div>
+                    <div className="header"><h2>Member Roster</h2><p>Manage your choir members</p></div>
+                    <div className="search-bar">
+                        <input type="text" placeholder="Search members..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                        <select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
+                            <option>All</option><option>Soprano</option><option>Alto</option><option>Tenor</option><option>Bass</option><option>Director</option>
+                        </select>
+                        <button className={`btn btn-primary ${theme === 'red' ? 'red-theme' : ''}`} onClick={() => { setEditingMember(null); setNewMember({ name: '', email: '', phone: '', section: 'Soprano' }); setShowAddMember(true); }}>+ Add Member</button>
+                    </div>
+                    <div className="table-container">
+                        <table><thead><tr><th>Name</th><th>Section</th><th>Email</th><th>Phone</th><th>Actions</th></tr></thead><tbody>
+                            {filteredMembers.length > 0 ? filteredMembers.map(member => (<tr key={member.id}><td><strong>{member.name}</strong></td><td>{member.section}</td><td>{member.email}</td><td>{member.phone}</td><td><button className="btn btn-secondary btn-small" onClick={() => startEdit(member)}>Edit</button><button className="btn btn-danger btn-small" onClick={() => deleteMemberHandler(member.id)}>Delete</button></td></tr>)) : (<tr><td colSpan="5" style={{textAlign: 'center', padding: '40px'}}>No members found</td></tr>)}
+                        </tbody></table>
+                    </div>
+                </div>
+            );
+            const AttendanceScreen = () => (
+                <div>
+                    <div className="header"><h2>Attendance Tracker</h2><p>Mark attendance for rehearsals and services</p></div>
+                    {events.length > 0 ? events.map(event => (
+                        <div key={event.id} className="table-container">
+                            <div className="table-header"><h3>{event.type} - {event.date}</h3><button className="btn btn-danger btn-small" onClick={() => deleteEventHandler(event.id)}>Delete Event</button></div>
+                            <table><thead><tr><th>Name</th><th>Section</th><th>Status</th></tr></thead><tbody>
+                                {members.map(member => (<tr key={member.id}><td><strong>{member.name}</strong></td><td>{member.section}</td><td><div className="attendance-buttons">
+                                    <button className={`attendance-btn ${event.attendance[member.id] === 'present' ? 'present' : ''}`} onClick={() => markAttendanceHandler(event.id, member.id, 'present')}>✓ Present</button>
+                                    <button className={`attendance-btn ${event.attendance[member.id] === 'absent' ? 'absent' : ''}`} onClick={() => markAttendanceHandler(event.id, member.id, 'absent')}>✗ Absent</button>
+                                    <button className={`attendance-btn ${event.attendance[member.id] === 'tardy' ? 'tardy' : ''}`} onClick={() => markAttendanceHandler(event.id, member.id, 'tardy')}>⏱ Tardy</button>
+                                </div></td></tr>))}
+                            </tbody></table>
+                        </div>
+                    )) : (<div className="empty-state"><h3>No events created</h3><p>Create an event to start tracking attendance</p></div>)}
+                </div>
+            );
+            const MusicScreen = () => (
+                <div>
+                    <div className="header"><h2>Music Library</h2><p>Manage your choir's song repertoire</p></div>
+                    <div className="table-container">
+                        <div className="table-header"><h3>🎵 Songs</h3><button className={`btn btn-primary ${theme === 'red' ? 'red-theme' : ''}`} onClick={() => { setNewSong({ title: '', composer: '', key: '', status: 'Learning' }); setShowAddSong(true); }}>+ Add Song</button></div>
+                        <table><thead><tr><th>Title</th><th>Composer</th><th>Key</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+                            {songs.length > 0 ? songs.map(song => (<tr key={song.id}><td><strong>{song.title}</strong></td><td>{song.composer}</td><td>{song.key}</td><td><span className={`badge ${song.status === 'Learning' ? 'badge-learning' : 'badge-ready'}`}>{song.status}</span></td><td><button className="btn btn-danger btn-small" onClick={() => deleteSongHandler(song.id)}>Delete</button></td></tr>)) : (<tr><td colSpan="5" style={{textAlign: 'center', padding: '40px'}}>No songs in library yet</td></tr>)}
+                        </tbody></table>
+                    </div>
+                </div>
+            );
+            const ReportsScreen = () => {
+                const totalPresent = events.reduce((sum, event) => sum + Object.values(event.attendance).filter(s => s === 'present').length, 0);
+                const totalAbsent = events.reduce((sum, event) => sum + Object.values(event.attendance).filter(s => s === 'absent').length, 0);
+                const totalTardy = events.reduce((sum, event) => sum + Object.values(event.attendance).filter(s => s === 'tardy').length, 0);
+                const avgAttendance = events.length > 0 ? Math.round((totalPresent / (events.length * members.length)) * 100) : 0;
+                const memberStats = members.map(member => {
+                    const eventCount = events.filter(e => e.attendance[member.id] !== undefined).length;
+                    const presentCount = events.filter(e => e.attendance[member.id] === 'present').length;
+                    const attendance = eventCount > 0 ? Math.round((presentCount / eventCount) * 100) : 0;
+                    return { ...member, attendance };
+                });
+                return (
+                    <div>
+                        <div className="header"><h2>Reports & Analytics</h2><p>Attendance statistics and member performance</p></div>
+                        <div className="stats-grid">
+                            <div className={`stat-card ${theme === 'red' ? 'red-theme' : ''}`}><h3>Avg Attendance</h3><div className="value">{avgAttendance}%</div><div className="label">Across all events</div></div>
+                            <div className={`stat-card ${theme === 'red' ? 'red-theme' : ''}`}><h3>Total Present</h3><div className="value">{totalPresent}</div><div className="label">Attendances marked</div></div>
+                            <div className={`stat-card ${theme === 'red' ? 'red-theme' : ''}`}><h3>Total Absent</h3><div className="value">{totalAbsent}</div><div className="label">No-shows</div></div>
+                            <div className={`stat-card ${theme === 'red' ? 'red-theme' : ''}`}><h3>Total Tardy</h3><div className="value">{totalTardy}</div><div className="label">Late arrivals</div></div>
+                        </div>
+                        <div className="table-container">
+                            <div className="table-header"><h3>📊 Member Attendance Summary</h3></div>
+                            <table><thead><tr><th>Name</th><th>Section</th><th>Events</th><th>Attendance Rate</th></tr></thead><tbody>
+                                {memberStats.length > 0 ? memberStats.map(member => (<tr key={member.id}><td><strong>{member.name}</strong></td><td>{member.section}</td><td>{events.filter(e => e.attendance[member.id] !== undefined).length}</td><td><strong style={{color: member.attendance >= 70 ? '#4caf50' : member.attendance >= 50 ? '#ff9800' : '#f44336'}}>{member.attendance}%</strong></td></tr>)) : (<tr><td colSpan="4" style={{textAlign: 'center', padding: '40px'}}>No attendance data available</td></tr>)}
+                            </tbody></table>
+                        </div>
+                    </div>
+                );
+            };
+            const ThemeToggle = () => (
+                <div className="sidebar-footer">
+                    <button
+                        className="theme-toggle-btn"
+                        onClick={() => setTheme(theme === 'purple' ? 'red' : 'purple')}
+                    >
+                        {theme === 'purple' ? '🔴 Red Theme' : '💜 Purple Theme'}
+                    </button>
+                </div>
+            );
+            if (loading) return (<div className="container"><div className={`sidebar ${theme === 'red' ? 'red-theme' : ''}`}><h1>🎵 Choir App</h1></div><div className="main-content"><div className="loading">Loading your choir data...</div></div></div>);
+            return (
+                <div className="container">
+                    <div className={`sidebar ${theme === 'red' ? 'red-theme' : ''}`}>
+                        <h1>🎵 Choir App</h1>
+                        <div className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>📊 Dashboard</div>
+                        <div className={`nav-item ${activeTab === 'roster' ? 'active' : ''}`} onClick={() => setActiveTab('roster')}>👥 Roster</div>
+                        <div className={`nav-item ${activeTab === 'attendance' ? 'active' : ''}`} onClick={() => setActiveTab('attendance')}>📋 Attendance</div>
+                        <div className={`nav-item ${activeTab === 'music' ? 'active' : ''}`} onClick={() => setActiveTab('music')}>🎵 Music Library</div>
+                        <div className={`nav-item ${activeTab === 'reports' ? 'active' : ''}`} onClick={() => setActiveTab('reports')}>📈 Reports</div>
+                        <ThemeToggle />
+                    </div>
+                    <div className="main-content">
+                        {activeTab === 'dashboard' && <DashboardScreen />}
+                        {activeTab === 'roster' && <RosterScreen />}
+                        {activeTab === 'attendance' && <AttendanceScreen />}
+                        {activeTab === 'music' && <MusicScreen />}
+                        {activeTab === 'reports' && <ReportsScreen />}
+                    </div>
+                    <MemberModalComponent showAddMember={showAddMember} editingMember={editingMember} newMember={newMember} setNewMember={setNewMember} setShowAddMember={setShowAddMember} theme={theme} addMemberHandler={addMemberHandler} updateMemberHandler={updateMemberHandler} />
+                    <SongModalComponent showAddSong={showAddSong} newSong={newSong} setNewSong={setNewSong} setShowAddSong={setShowAddSong} theme={theme} addSongHandler={addSongHandler} />
+                    <EventModalComponent showAddEvent={showAddEvent} newEvent={newEvent} setNewEvent={setNewEvent} setShowAddEvent={setShowAddEvent} theme={theme} addEventHandler={addEventHandler} />
+                    <MobileNav activeTab={activeTab} setActiveTab={setActiveTab} theme={theme} />
+                </div>
+            );
+        }
+        ReactDOM.render(<ChoirApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
