@@ -58,6 +58,10 @@
         .search-bar { display: flex; gap: 12px; margin-bottom: 20px; }
         .search-bar input, .search-bar select { padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
         .search-bar input { flex: 1; }
+        .event-selector { display: flex; gap: 12px; align-items: center; margin-bottom: 24px; background: white; padding: 16px 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .event-selector label { font-weight: 600; color: #333; font-size: 14px; white-space: nowrap; }
+        .event-selector select { flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; }
+        .event-selector select:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
         .attendance-buttons { display: flex; gap: 8px; }
         .attendance-btn { padding: 8px 12px; border: 2px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.3s ease; }
         .attendance-btn.present { border-color: #4caf50; background: #e8f5e9; color: #2e7d32; }
@@ -75,17 +79,14 @@
         .stat-card.red-theme { border-top: 4px solid #dc143c; }
         .stat-card.red-theme .value { color: #dc143c; }
         .form-group input.red-theme:focus, .form-group select.red-theme:focus { border-color: #dc143c; box-shadow: 0 0 0 3px rgba(220,20,60,0.1); }
+        .event-selector.red-theme select:focus { border-color: #dc143c; box-shadow: 0 0 0 3px rgba(220,20,60,0.1); }
         .theme-toggle-btn { padding: 10px 16px; background: #2a2a2a; color: white; border: 2px solid #dc143c; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; margin: 20px; font-size: 13px; width: calc(100% - 40px); }
         .theme-toggle-btn:hover { background: #dc143c; transform: translateY(-2px); }
         .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.2); margin-top: auto; }
-
-        /* Mobile Navigation Bar */
         .mobile-nav {
             display: none;
             position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            bottom: 0; left: 0; right: 0;
             height: 70px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-top: 1px solid rgba(255,255,255,0.2);
@@ -94,45 +95,22 @@
             z-index: 99;
             box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
         }
-
         .mobile-nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            flex: 1;
-            height: 100%;
-            color: rgba(255,255,255,0.7);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            gap: 4px;
-            font-size: 11px;
-            font-weight: 500;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            flex: 1; height: 100%; color: rgba(255,255,255,0.7); cursor: pointer;
+            transition: all 0.3s ease; gap: 4px; font-size: 11px; font-weight: 500;
         }
-
-        .mobile-nav-item:active {
-            background: rgba(255,255,255,0.1);
-        }
-
-        .mobile-nav-item.active {
-            color: white;
-            background: rgba(255,255,255,0.15);
-        }
-
-        .mobile-nav-item span:first-child {
-            font-size: 20px;
-        }
-
-        .mobile-nav.red-theme {
-            background: linear-gradient(135deg, #dc143c 0%, #8b0000 100%);
-        }
-
+        .mobile-nav-item:active { background: rgba(255,255,255,0.1); }
+        .mobile-nav-item.active { color: white; background: rgba(255,255,255,0.15); }
+        .mobile-nav-item span:first-child { font-size: 20px; }
+        .mobile-nav.red-theme { background: linear-gradient(135deg, #dc143c 0%, #8b0000 100%); }
         @media (max-width: 768px) {
             .sidebar { width: 0; position: absolute; left: 0; z-index: 100; }
             .main-content { margin-left: 0; padding-bottom: 80px; }
             .form-row { grid-template-columns: 1fr; }
             .stats-grid { grid-template-columns: 1fr; }
             .mobile-nav { display: flex; }
+            .event-selector { flex-direction: column; align-items: flex-start; }
         }
     </style>
 </head>
@@ -144,6 +122,7 @@
         const SUPABASE_ANON_KEY = 'sb_publishable_D40qYjj5DBL8nq8UwbVn9Q_as0Jpb4w';
         const { createClient } = window.supabase;
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         async function fetchMembers() {
             try {
                 const { data, error } = await supabase.from('members').select('*').order('id', { ascending: true });
@@ -245,6 +224,7 @@
                 return false;
             }
         }
+
         const MemberModalComponent = React.memo(({ showAddMember, editingMember, newMember, setNewMember, setShowAddMember, theme, addMemberHandler, updateMemberHandler }) => {
             const handleNameChange = useCallback((e) => setNewMember(prev => ({ ...prev, name: e.target.value })), [setNewMember]);
             const handleEmailChange = useCallback((e) => setNewMember(prev => ({ ...prev, email: e.target.value })), [setNewMember]);
@@ -258,7 +238,16 @@
                         <div className="form-group"><label>Full Name</label><input type="text" value={newMember.name} onChange={handleNameChange} placeholder="Sarah Johnson" autoComplete="off" className={theme === 'red' ? 'red-theme' : ''} /></div>
                         <div className="form-group"><label>Email</label><input type="email" value={newMember.email} onChange={handleEmailChange} placeholder="sarah@example.com" autoComplete="off" className={theme === 'red' ? 'red-theme' : ''} /></div>
                         <div className="form-group"><label>Phone</label><input type="text" value={newMember.phone} onChange={handlePhoneChange} placeholder="+234 801 234 5678" autoComplete="off" className={theme === 'red' ? 'red-theme' : ''} /></div>
-                        <div className="form-group"><label>Vocal Section</label><select value={newMember.section} onChange={handleSectionChange} className={theme === 'red' ? 'red-theme' : ''}><option>Soprano</option><option>Alto</option><option>Tenor</option><option>Bass</option><option>Director</option></select></div>
+                        <div className="form-group">
+                            <label>Vocal Section</label>
+                            <select value={newMember.section} onChange={handleSectionChange} className={theme === 'red' ? 'red-theme' : ''}>
+                                <option>Soprano</option>
+                                <option>Alto</option>
+                                <option>Tenor</option>
+                                <option>Bass</option>
+                                <option>Instrumentalist</option>
+                            </select>
+                        </div>
                         <div className="modal-buttons">
                             <button className={`btn btn-primary ${theme === 'red' ? 'red-theme' : ''}`} onClick={editingMember ? updateMemberHandler : addMemberHandler}>{editingMember ? 'Update' : 'Add'} Member</button>
                             <button className="btn btn-secondary" onClick={() => setShowAddMember(false)}>Cancel</button>
@@ -267,6 +256,7 @@
                 </div>
             );
         });
+
         const SongModalComponent = React.memo(({ showAddSong, newSong, setNewSong, setShowAddSong, theme, addSongHandler }) => {
             const handleTitleChange = useCallback((e) => setNewSong(prev => ({ ...prev, title: e.target.value })), [setNewSong]);
             const handleComposerChange = useCallback((e) => setNewSong(prev => ({ ...prev, composer: e.target.value })), [setNewSong]);
@@ -289,6 +279,7 @@
                 </div>
             );
         });
+
         const EventModalComponent = React.memo(({ showAddEvent, newEvent, setNewEvent, setShowAddEvent, theme, addEventHandler }) => {
             const handleTypeChange = useCallback((e) => setNewEvent(prev => ({ ...prev, type: e.target.value })), [setNewEvent]);
             const handleDateChange = useCallback((e) => setNewEvent(prev => ({ ...prev, date: e.target.value })), [setNewEvent]);
@@ -297,7 +288,14 @@
                     <div className="modal">
                         <button className="close-btn" onClick={() => setShowAddEvent(false)}>×</button>
                         <h2>Add New Event</h2>
-                        <div className="form-group"><label>Event Type</label><select value={newEvent.type} onChange={handleTypeChange} className={theme === 'red' ? 'red-theme' : ''}><option>Rehearsal</option><option>Sunday Service</option></select></div>
+                        <div className="form-group">
+                            <label>Event Type</label>
+                            <select value={newEvent.type} onChange={handleTypeChange} className={theme === 'red' ? 'red-theme' : ''}>
+                                <option>Rehearsal</option>
+                                <option>Sunday 1st Service</option>
+                                <option>Sunday 2nd Service</option>
+                            </select>
+                        </div>
                         <div className="form-group"><label>Date</label><input type="date" value={newEvent.date} onChange={handleDateChange} className={theme === 'red' ? 'red-theme' : ''} /></div>
                         <div className="modal-buttons">
                             <button className={`btn btn-primary ${theme === 'red' ? 'red-theme' : ''}`} onClick={addEventHandler}>Add Event</button>
@@ -310,21 +308,11 @@
 
         const MobileNav = React.memo(({ activeTab, setActiveTab, theme }) => (
             <div className={`mobile-nav ${theme === 'red' ? 'red-theme' : ''}`}>
-                <div className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
-                    <span>📊</span><span>Dashboard</span>
-                </div>
-                <div className={`mobile-nav-item ${activeTab === 'roster' ? 'active' : ''}`} onClick={() => setActiveTab('roster')}>
-                    <span>👥</span><span>Roster</span>
-                </div>
-                <div className={`mobile-nav-item ${activeTab === 'attendance' ? 'active' : ''}`} onClick={() => setActiveTab('attendance')}>
-                    <span>📋</span><span>Attendance</span>
-                </div>
-                <div className={`mobile-nav-item ${activeTab === 'music' ? 'active' : ''}`} onClick={() => setActiveTab('music')}>
-                    <span>🎵</span><span>Music</span>
-                </div>
-                <div className={`mobile-nav-item ${activeTab === 'reports' ? 'active' : ''}`} onClick={() => setActiveTab('reports')}>
-                    <span>📈</span><span>Reports</span>
-                </div>
+                <div className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}><span>📊</span><span>Dashboard</span></div>
+                <div className={`mobile-nav-item ${activeTab === 'roster' ? 'active' : ''}`} onClick={() => setActiveTab('roster')}><span>👥</span><span>Roster</span></div>
+                <div className={`mobile-nav-item ${activeTab === 'attendance' ? 'active' : ''}`} onClick={() => setActiveTab('attendance')}><span>📋</span><span>Attendance</span></div>
+                <div className={`mobile-nav-item ${activeTab === 'music' ? 'active' : ''}`} onClick={() => setActiveTab('music')}><span>🎵</span><span>Music</span></div>
+                <div className={`mobile-nav-item ${activeTab === 'reports' ? 'active' : ''}`} onClick={() => setActiveTab('reports')}><span>📈</span><span>Reports</span></div>
             </div>
         ));
 
@@ -349,6 +337,9 @@
             const [searchTerm, setSearchTerm] = useState('');
             const [sectionFilter, setSectionFilter] = useState('All');
             const [theme, setTheme] = useState('purple');
+            // CHANGE 1: State for the selected event in the Attendance Tracker
+            const [selectedAttendanceEventId, setSelectedAttendanceEventId] = useState('all');
+
             useEffect(() => {
                 const loadData = async () => {
                     setLoading(true);
@@ -360,6 +351,7 @@
                 };
                 loadData();
             }, []);
+
             const addMemberHandler = async () => {
                 if (newMember.name.trim()) {
                     const result = await addMember(newMember);
@@ -410,7 +402,11 @@
             };
             const deleteEventHandler = async (id) => {
                 const success = await deleteEvent(id);
-                if (success) setEvents(events.filter(e => e.id !== id));
+                if (success) {
+                    setEvents(events.filter(e => e.id !== id));
+                    // Reset selector if the deleted event was selected
+                    if (selectedAttendanceEventId === String(id)) setSelectedAttendanceEventId('all');
+                }
             };
             const markAttendanceHandler = async (eventId, memberId, status) => {
                 const success = await markAttendance(eventId, memberId, status);
@@ -418,11 +414,13 @@
                     setEvents(events.map(e => e.id === eventId ? { ...e, attendance: { ...e.attendance, [memberId]: status } } : e));
                 }
             };
+
             const filteredMembers = members.filter(m => {
                 const matchesSearch = m.name.toLowerCase().includes(searchTerm.toLowerCase());
                 const matchesSection = sectionFilter === 'All' || m.section === sectionFilter;
                 return matchesSearch && matchesSection;
             });
+
             const getEventStats = (eventId) => {
                 const event = events.find(e => e.id === eventId);
                 if (!event) return { present: 0, absent: 0, tardy: 0, total: 0, percentage: 0 };
@@ -434,6 +432,7 @@
                 const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
                 return { present, absent, tardy, total, percentage };
             };
+
             const DashboardScreen = () => (
                 <div>
                     <div className="header">
@@ -449,45 +448,84 @@
                     <div className="table-container">
                         <div className="table-header"><h3>📅 Upcoming Events</h3><button className={`btn btn-primary ${theme === 'red' ? 'red-theme' : ''}`} onClick={() => setShowAddEvent(true)}>+ Add Event</button></div>
                         <table><thead><tr><th>Date</th><th>Type</th><th>Attendance</th><th>Percentage</th><th>Action</th></tr></thead><tbody>
-                            {events.length > 0 ? events.map(event => {const stats = getEventStats(event.id); return (<tr key={event.id}><td><strong>{event.date}</strong></td><td>{event.type}</td><td>{stats.present}/{stats.total} present</td><td><strong style={{color: stats.percentage >= 70 ? '#4caf50' : '#f44336'}}>{stats.percentage}%</strong></td><td><button className="btn btn-danger btn-small" onClick={() => deleteEventHandler(event.id)}>Delete</button></td></tr>);}) : (<tr><td colSpan="5" style={{textAlign: 'center', padding: '40px'}}>No events scheduled</td></tr>)}
+                            {events.length > 0 ? events.map(event => { const stats = getEventStats(event.id); return (<tr key={event.id}><td><strong>{event.date}</strong></td><td>{event.type}</td><td>{stats.present}/{stats.total} present</td><td><strong style={{color: stats.percentage >= 70 ? '#4caf50' : '#f44336'}}>{stats.percentage}%</strong></td><td><button className="btn btn-danger btn-small" onClick={() => deleteEventHandler(event.id)}>Delete</button></td></tr>); }) : (<tr><td colSpan="5" style={{textAlign: 'center', padding: '40px'}}>No events scheduled</td></tr>)}
                         </tbody></table>
                     </div>
                 </div>
             );
+
             const RosterScreen = () => (
                 <div>
                     <div className="header"><h2>Member Roster</h2><p>Manage your choir members</p></div>
                     <div className="search-bar">
                         <input type="text" placeholder="Search members..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                         <select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
-                            <option>All</option><option>Soprano</option><option>Alto</option><option>Tenor</option><option>Bass</option><option>Director</option>
+                            <option>All</option><option>Soprano</option><option>Alto</option><option>Tenor</option><option>Bass</option><option>Instrumentalist</option>
                         </select>
                         <button className={`btn btn-primary ${theme === 'red' ? 'red-theme' : ''}`} onClick={() => { setEditingMember(null); setNewMember({ name: '', email: '', phone: '', section: 'Soprano' }); setShowAddMember(true); }}>+ Add Member</button>
                     </div>
                     <div className="table-container">
                         <table><thead><tr><th>Name</th><th>Section</th><th>Email</th><th>Phone</th><th>Actions</th></tr></thead><tbody>
-                            {filteredMembers.length > 0 ? filteredMembers.map(member => (<tr key={member.id}><td><strong>{member.name}</strong></td><td>{member.section}</td><td>{member.email}</td><td>{member.phone}</td><td><button className="btn btn-secondary btn-small" onClick={() => startEdit(member)}>Edit</button><button className="btn btn-danger btn-small" onClick={() => deleteMemberHandler(member.id)}>Delete</button></td></tr>)) : (<tr><td colSpan="5" style={{textAlign: 'center', padding: '40px'}}>No members found</td></tr>)}
+                            {filteredMembers.length > 0 ? filteredMembers.map(member => (<tr key={member.id}><td><strong>{member.name}</strong></td><td>{member.section}</td><td>{member.email}</td><td>{member.phone}</td><td><button className="btn btn-secondary btn-small" onClick={() => startEdit(member)}>Edit</button> <button className="btn btn-danger btn-small" onClick={() => deleteMemberHandler(member.id)}>Delete</button></td></tr>)) : (<tr><td colSpan="5" style={{textAlign: 'center', padding: '40px'}}>No members found</td></tr>)}
                         </tbody></table>
                     </div>
                 </div>
             );
-            const AttendanceScreen = () => (
-                <div>
-                    <div className="header"><h2>Attendance Tracker</h2><p>Mark attendance for rehearsals and services</p></div>
-                    {events.length > 0 ? events.map(event => (
-                        <div key={event.id} className="table-container">
-                            <div className="table-header"><h3>{event.type} - {event.date}</h3><button className="btn btn-danger btn-small" onClick={() => deleteEventHandler(event.id)}>Delete Event</button></div>
-                            <table><thead><tr><th>Name</th><th>Section</th><th>Status</th></tr></thead><tbody>
-                                {members.map(member => (<tr key={member.id}><td><strong>{member.name}</strong></td><td>{member.section}</td><td><div className="attendance-buttons">
-                                    <button className={`attendance-btn ${event.attendance[member.id] === 'present' ? 'present' : ''}`} onClick={() => markAttendanceHandler(event.id, member.id, 'present')}>✓ Present</button>
-                                    <button className={`attendance-btn ${event.attendance[member.id] === 'absent' ? 'absent' : ''}`} onClick={() => markAttendanceHandler(event.id, member.id, 'absent')}>✗ Absent</button>
-                                    <button className={`attendance-btn ${event.attendance[member.id] === 'tardy' ? 'tardy' : ''}`} onClick={() => markAttendanceHandler(event.id, member.id, 'tardy')}>⏱ Tardy</button>
-                                </div></td></tr>))}
-                            </tbody></table>
-                        </div>
-                    )) : (<div className="empty-state"><h3>No events created</h3><p>Create an event to start tracking attendance</p></div>)}
-                </div>
-            );
+
+            // CHANGE 1: Attendance screen now has an event selector dropdown
+            const AttendanceScreen = () => {
+                const visibleEvents = selectedAttendanceEventId === 'all'
+                    ? events
+                    : events.filter(e => String(e.id) === selectedAttendanceEventId);
+
+                return (
+                    <div>
+                        <div className="header"><h2>Attendance Tracker</h2><p>Mark attendance for rehearsals and services</p></div>
+
+                        {events.length > 0 && (
+                            <div className={`event-selector ${theme === 'red' ? 'red-theme' : ''}`}>
+                                <label>📋 Select Event:</label>
+                                <select
+                                    value={selectedAttendanceEventId}
+                                    onChange={(e) => setSelectedAttendanceEventId(e.target.value)}
+                                >
+                                    <option value="all">— Show All Events —</option>
+                                    {events.map(event => (
+                                        <option key={event.id} value={String(event.id)}>
+                                            {event.type} — {event.date}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        {events.length > 0 ? visibleEvents.map(event => (
+                            <div key={event.id} className="table-container">
+                                <div className="table-header">
+                                    <h3>{event.type} — {event.date}</h3>
+                                    <button className="btn btn-danger btn-small" onClick={() => deleteEventHandler(event.id)}>Delete Event</button>
+                                </div>
+                                <table><thead><tr><th>Name</th><th>Section</th><th>Status</th></tr></thead><tbody>
+                                    {members.map(member => (
+                                        <tr key={member.id}>
+                                            <td><strong>{member.name}</strong></td>
+                                            <td>{member.section}</td>
+                                            <td>
+                                                <div className="attendance-buttons">
+                                                    <button className={`attendance-btn ${event.attendance[member.id] === 'present' ? 'present' : ''}`} onClick={() => markAttendanceHandler(event.id, member.id, 'present')}>✓ Present</button>
+                                                    <button className={`attendance-btn ${event.attendance[member.id] === 'absent' ? 'absent' : ''}`} onClick={() => markAttendanceHandler(event.id, member.id, 'absent')}>✗ Absent</button>
+                                                    <button className={`attendance-btn ${event.attendance[member.id] === 'tardy' ? 'tardy' : ''}`} onClick={() => markAttendanceHandler(event.id, member.id, 'tardy')}>⏱ Tardy</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody></table>
+                            </div>
+                        )) : (<div className="empty-state"><h3>No events created</h3><p>Create an event to start tracking attendance</p></div>)}
+                    </div>
+                );
+            };
+
             const MusicScreen = () => (
                 <div>
                     <div className="header"><h2>Music Library</h2><p>Manage your choir's song repertoire</p></div>
@@ -499,17 +537,36 @@
                     </div>
                 </div>
             );
+
             const ReportsScreen = () => {
+                const [reportEventFilter, setReportEventFilter] = useState('all');
+
                 const totalPresent = events.reduce((sum, event) => sum + Object.values(event.attendance).filter(s => s === 'present').length, 0);
                 const totalAbsent = events.reduce((sum, event) => sum + Object.values(event.attendance).filter(s => s === 'absent').length, 0);
                 const totalTardy = events.reduce((sum, event) => sum + Object.values(event.attendance).filter(s => s === 'tardy').length, 0);
-                const avgAttendance = events.length > 0 ? Math.round((totalPresent / (events.length * members.length)) * 100) : 0;
+                const avgAttendance = events.length > 0 && members.length > 0 ? Math.round((totalPresent / (events.length * members.length)) * 100) : 0;
+
+                // Per-member stats
                 const memberStats = members.map(member => {
                     const eventCount = events.filter(e => e.attendance[member.id] !== undefined).length;
                     const presentCount = events.filter(e => e.attendance[member.id] === 'present').length;
                     const attendance = eventCount > 0 ? Math.round((presentCount / eventCount) * 100) : 0;
                     return { ...member, attendance };
                 });
+
+                // Full event breakdown list
+                const eventBreakdown = events.map(event => {
+                    const present = Object.values(event.attendance).filter(s => s === 'present').length;
+                    const possible = members.length;
+                    const avg = possible > 0 ? Math.round((present / possible) * 100) : 0;
+                    return { id: event.id, label: `${event.type} — ${event.date}`, present, avg };
+                });
+
+                // Filtered view based on dropdown selection
+                const filteredBreakdown = reportEventFilter === 'all'
+                    ? eventBreakdown
+                    : eventBreakdown.filter(e => String(e.id) === reportEventFilter);
+
                 return (
                     <div>
                         <div className="header"><h2>Reports & Analytics</h2><p>Attendance statistics and member performance</p></div>
@@ -519,26 +576,61 @@
                             <div className={`stat-card ${theme === 'red' ? 'red-theme' : ''}`}><h3>Total Absent</h3><div className="value">{totalAbsent}</div><div className="label">No-shows</div></div>
                             <div className={`stat-card ${theme === 'red' ? 'red-theme' : ''}`}><h3>Total Tardy</h3><div className="value">{totalTardy}</div><div className="label">Late arrivals</div></div>
                         </div>
+
+                        {eventBreakdown.length > 0 && (
+                            <div className="table-container" style={{marginBottom: '30px'}}>
+                                <div className="table-header">
+                                    <h3>📅 Attendance by Event</h3>
+                                    <select
+                                        value={reportEventFilter}
+                                        onChange={(e) => setReportEventFilter(e.target.value)}
+                                        style={{padding: '8px 12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit', color: '#333', background: 'white', cursor: 'pointer'}}
+                                    >
+                                        <option value="all">All Events</option>
+                                        {eventBreakdown.map(e => (
+                                            <option key={e.id} value={String(e.id)}>{e.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <table><thead><tr><th>Event</th><th>Total Present</th><th>Attendance Rate</th></tr></thead><tbody>
+                                    {filteredBreakdown.map(e => (
+                                        <tr key={e.id}>
+                                            <td><strong>{e.label}</strong></td>
+                                            <td>{e.present}</td>
+                                            <td><strong style={{color: e.avg >= 70 ? '#4caf50' : e.avg >= 50 ? '#ff9800' : '#f44336'}}>{e.avg}%</strong></td>
+                                        </tr>
+                                    ))}
+                                </tbody></table>
+                            </div>
+                        )}
+
+                        {/* CHANGE 3: "Section" column removed — member data is unchanged in state */}
                         <div className="table-container">
                             <div className="table-header"><h3>📊 Member Attendance Summary</h3></div>
-                            <table><thead><tr><th>Name</th><th>Section</th><th>Events</th><th>Attendance Rate</th></tr></thead><tbody>
-                                {memberStats.length > 0 ? memberStats.map(member => (<tr key={member.id}><td><strong>{member.name}</strong></td><td>{member.section}</td><td>{events.filter(e => e.attendance[member.id] !== undefined).length}</td><td><strong style={{color: member.attendance >= 70 ? '#4caf50' : member.attendance >= 50 ? '#ff9800' : '#f44336'}}>{member.attendance}%</strong></td></tr>)) : (<tr><td colSpan="4" style={{textAlign: 'center', padding: '40px'}}>No attendance data available</td></tr>)}
+                            <table><thead><tr><th>Name</th><th>Events Attended</th><th>Attendance Rate</th></tr></thead><tbody>
+                                {memberStats.length > 0 ? memberStats.map(member => (
+                                    <tr key={member.id}>
+                                        <td><strong>{member.name}</strong></td>
+                                        <td>{events.filter(e => e.attendance[member.id] === 'present').length} / {events.filter(e => e.attendance[member.id] !== undefined).length}</td>
+                                        <td><strong style={{color: member.attendance >= 70 ? '#4caf50' : member.attendance >= 50 ? '#ff9800' : '#f44336'}}>{member.attendance}%</strong></td>
+                                    </tr>
+                                )) : (<tr><td colSpan="3" style={{textAlign: 'center', padding: '40px'}}>No attendance data available</td></tr>)}
                             </tbody></table>
                         </div>
                     </div>
                 );
             };
+
             const ThemeToggle = () => (
                 <div className="sidebar-footer">
-                    <button
-                        className="theme-toggle-btn"
-                        onClick={() => setTheme(theme === 'purple' ? 'red' : 'purple')}
-                    >
+                    <button className="theme-toggle-btn" onClick={() => setTheme(theme === 'purple' ? 'red' : 'purple')}>
                         {theme === 'purple' ? '🔴 Red Theme' : '💜 Purple Theme'}
                     </button>
                 </div>
             );
+
             if (loading) return (<div className="container"><div className={`sidebar ${theme === 'red' ? 'red-theme' : ''}`}><h1>🎵 Choir App</h1></div><div className="main-content"><div className="loading">Loading your choir data...</div></div></div>);
+
             return (
                 <div className="container">
                     <div className={`sidebar ${theme === 'red' ? 'red-theme' : ''}`}>
